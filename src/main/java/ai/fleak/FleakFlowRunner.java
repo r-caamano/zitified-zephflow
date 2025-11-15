@@ -84,7 +84,7 @@ public class FleakFlowRunner {
                     ")"
                 );
 
-                // Output transformed JSON to stdout
+                // Prepare the flow to emit the transformed JSON to stdout upon execution
                 ZephFlow outputFlow = transformedFlow.stdoutSink(EncodingType.JSON_OBJECT);
 
                 // Execute flow and measure latency
