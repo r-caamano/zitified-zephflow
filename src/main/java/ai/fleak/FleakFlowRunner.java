@@ -18,23 +18,29 @@ import java.io.*;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.Channels;
 import java.sql.*;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
 public class FleakFlowRunner {
 
     public static void main(String[] args) throws Exception {
+        if(!(args.length >= 3)){
+            System.out.println("Not enough are arguments " + args.length + " given but 3 are required");
+            System.out.println("Usage: required args = <ziti identity json> <inbound ziti service name> <outbound ziti url>");
+            System.exit(1);
+        }
         // Enable Ziti debug logging and SLF4J verbosity
-        System.setProperty("org.openziti.level", "DEBUG");
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
+        //System.setProperty("org.openziti.level", "DEBUG");
+        //System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
 
         // Load Ziti identity and initialize context
-        ZitiContext ziti = Ziti.newContext("fleak.json", new char[]{});
+        ZitiContext ziti = Ziti.newContext(args[0], new char[]{});
 
 
         // Create Ziti server socket and bind to service 'FLEAK_TEST'
         ZitiServerSocketChannel server = new ZitiServerSocketChannel((ZitiContextImpl) ziti);
-        server.bind(new ZitiAddress.Bind("FLEAK_TEST"), 0);
+        server.bind(new ZitiAddress.Bind(args[1]), 0);
 
         // Allow time for terminator registration and edge-router propagation
         Thread.sleep(20000);
@@ -88,7 +94,7 @@ public class FleakFlowRunner {
                 // Execute flow and measure latency
                 long start = System.currentTimeMillis();
                 System.out.println("Executing flow...");
-                outputFlow.execute("ziti_id", "ziti_env", "ziti_service");
+                outputFlow.execute(Objects.requireNonNull(ziti.getId()).getId(), args[2], args[1]);
                 long end = System.currentTimeMillis();
 
                 // Restore original stdout
@@ -111,12 +117,12 @@ public class FleakFlowRunner {
                             JSONArray arr = new JSONArray(trimmed);
                             for (int i = 0; i < arr.length(); i++) {
                                 JSONObject obj = arr.getJSONObject(i);
-                                insertIntoPostgres(obj);
+                                insertIntoPostgres(obj, args[2]);
                             }
                         } else if (trimmed.startsWith("{")) {
                             System.out.println("Line has {");
                             JSONObject obj = new JSONObject(trimmed);
-                            insertIntoPostgres(obj);
+                            insertIntoPostgres(obj, args[2]);
                         } else {
                             System.err.println("Skipping non-JSON line: " + trimmed);
                         }
@@ -138,8 +144,8 @@ public class FleakFlowRunner {
     }
 
     // 🛠️ Connect to Postgres via Ziti service
-    private static Connection connectToPostgres() throws SQLException {
-        String jdbcUrl = "jdbc:postgresql://zitified-pg:5432/mydb";
+    private static Connection connectToPostgres(String service) throws SQLException {
+        String jdbcUrl = "jdbc:postgresql://" + service + "/mydb";
         Properties props = new Properties();
         props.setProperty("user", "myuser");
         props.setProperty("password", "mypassword");
@@ -149,8 +155,8 @@ public class FleakFlowRunner {
     }
 
     // Insert transformed JSON into Postgres
-    private static void insertIntoPostgres(JSONObject obj) throws SQLException {
-        try (Connection conn = connectToPostgres()) {
+    private static void insertIntoPostgres(JSONObject obj, String service) throws SQLException {
+        try (Connection conn = connectToPostgres(service)) {
             System.out.println("Returned Driver");
             PreparedStatement stmt = conn.prepareStatement(
                 "INSERT INTO transform (doubled_value, original_value, status, timestamp) VALUES (?, ?, ?, ?)"
