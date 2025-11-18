@@ -1,12 +1,10 @@
 package ai.fleak;
 
 // Ziti SDK imports for identity, context, and socket binding
-import org.openziti.IdentityConfig;
 import org.openziti.Ziti;
 import org.openziti.ZitiContext;
 import org.openziti.ZitiAddress;
 import org.openziti.net.ZitiServerSocketChannel;
-import org.openziti.net.ZitiSocketChannel;
 import org.openziti.impl.ZitiContextImpl;
 
 // ZephFlow SDK imports for flow execution and JSON transformation
@@ -31,8 +29,8 @@ public class FleakFlowRunner {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
 
         // Load Ziti identity and initialize context
-        IdentityConfig config = IdentityConfig.load("fleak.json");
-        ZitiContext ziti = Ziti.newContext(config);
+        ZitiContext ziti = Ziti.newContext("fleak.json", new char[]{});
+
 
         // Create Ziti server socket and bind to service 'FLEAK_TEST'
         ZitiServerSocketChannel server = new ZitiServerSocketChannel((ZitiContextImpl) ziti);
@@ -141,7 +139,7 @@ public class FleakFlowRunner {
 
     // 🛠️ Connect to Postgres via Ziti service
     private static Connection connectToPostgres() throws SQLException {
-        String jdbcUrl = "jdbc:postgresql://zitified-pg:5432/mydb?sslmode=disable";
+        String jdbcUrl = "jdbc:postgresql://zitified-pg:5432/mydb";
         Properties props = new Properties();
         props.setProperty("user", "myuser");
         props.setProperty("password", "mypassword");
