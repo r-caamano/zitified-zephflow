@@ -39,8 +39,7 @@ public class FleakFlowRunner {
 
         // Load Ziti identity and initialize context
         ZitiContext ziti = Ziti.newContext(args[0], new char[]{});
-
-
+        
         // Create Ziti server socket and bind to service 'FLEAK_TEST'
         ZitiServerSocketChannel server = new ZitiServerSocketChannel((ZitiContextImpl) ziti);
         server.bind(new ZitiAddress.Bind(args[1]), 0);
